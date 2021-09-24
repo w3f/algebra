@@ -29,8 +29,9 @@ pub trait SWUParams : SWModelParameters {
     // it is also convenient to have $g(b/xi * a)$ to be square. In general we use a xi with
     // low absolute value coefficients when they are represented as element of ZZ.
     const XI : Self::BaseField;
-    const ZETA: Self::BaseField; //arbitatry root of unity
-    const XI_ON_ZETA_SQRT: Self::BaseField; //square root of THETA
+    const ZETA: Self::BaseField; //arbitatry primitive root of unity (h in pasta implementation)
+   // from  pasta_curves/src/arithmetic/fields.rs: "ROOT_OF_UNITY is a generator of the order 2^n subgroup (and therefore a nonsquare)"
+    const XI_ON_ZETA_SQRT: Self::BaseField; //square root of THETA=Xi/Zeta
     
 }
 
@@ -95,7 +96,7 @@ impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P>{
         // 8. Else set x = x2 and y = sqrt(gx2)
         let mut gx1_square = false;
         let mut gx1 = num_gx1;
-        let mut zeta_gx1 = P::ZETA;
+        let mut zeta_gx1 = P::ZETA; //Just to define zeta_gx1 so it stays alive after next block.
         
         
         let y1: P::BaseField = if (div3.is_zero()) {
@@ -111,7 +112,7 @@ impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P>{
             } else {
                 gx1_square = false;
                 //println!("zeta: {:?} gx1: {:?} zeta_gx1: {:?}", P::ZETA, gx1, zeta_gx1);
-                zeta_gx1.sqrt().expect("zeta * gx1 is a quadratic residue because legard is multiplicative. Q.E.D")
+                zeta_gx1.sqrt().expect("zeta * gx1 is a quadratic residue because legendre is multiplicative. Q.E.D")
             }
         };
         
@@ -123,7 +124,7 @@ impl <P: SWUParams> MapToCurve<GroupAffine<P>> for SWUMap<P>{
         // We know that Z / h is a square since both Z and h are
         // nonsquares. Precompute theta as a square root of Z / ROOT_OF_UNITY.
         //
-        // We have gx2 = g(Z * u^2 * x1) = Z^3 * u^6 * gx1
+        // We have gx2 = g(Z * u^2 * x1) = Z^3 * u^6 * gx1 = 
         //                               = (Z * u^3)^2 * (Z/h * h * gx1)
         //                               = (Z * theta * u^3)^2 * (h * gx1)
         //

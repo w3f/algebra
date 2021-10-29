@@ -8,7 +8,7 @@ pub mod map_to_curve_hasher;
 
 /// Trait for hashing arbitrary data to a group element on an elliptic curve
 pub trait HashToCurve<T: AffineCurve>: Sized {
-    /// Create a new hash to curve instance, with a given domain.
+    /// Create a new HashToCurve instance, with a given domain.
     fn new(domain: &[u8]) -> Result<Self, HashToCurveError>;
 
     /// Produce a hash of the message, which also depends on the domain.

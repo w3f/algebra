@@ -3,16 +3,17 @@ use crate::AffineCurve;
 use ark_ff::Field;
 use ark_std::{marker::PhantomData, vec::Vec};
 
-/// Trait for mapping a random field element to a random curve point.
-pub trait MapToCurve<T: AffineCurve> {
-    fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError>
-    where
-        Self: Sized;
-    /// Map random field point to a random curve point
+/// Trait for mapping an arbitrary field element to a group element
+/// on an elliptic curve
+pub trait MapToCurve<T: AffineCurve>: Sized{
+    /// Create a new MapToCurve instance, with a given domain.
+    fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError>;
+
+    /// Map a field element to a point on the curve.
     fn map_to_curve(&self, point: T::BaseField) -> Result<T, HashToCurveError>;
 }
 
-// Trait for hashing messages to field elements
+/// Trait for hashing messages to field elements
 pub trait HashToField<F: Field>: Sized {
     fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError>;
 

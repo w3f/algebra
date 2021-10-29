@@ -1,12 +1,8 @@
 use crate::hashing::map_to_curve_hasher::*;
 use crate::hashing::*;
 use ark_ff::{Field, PrimeField};
-use ark_std::{
-    string::{ToString},
-    vec::Vec,
-};
+use ark_std::{string::ToString, vec::Vec};
 use digest::{Update, VariableOutput};
-//use ark_std::boxed::Box;
 
 // This function computes the length in bytes that a hash function should output
 // for hashing `count` field elements.
@@ -27,11 +23,13 @@ fn hash_len_in_bytes<F: Field>(security_parameter: usize, count: usize) -> usize
 
 //@Skalman: not sure why do we need to that for general bytes that only need to be done by the digest.
 fn map_bytes_to_field_elem<F: Field>(bz: &[u8]) -> Option<F> {
-    let d : usize = F::extension_degree() as usize; 
+    let d: usize = F::extension_degree() as usize;
     let len_per_elem = bz.len() / d;
     let mut base_field_elems = Vec::new();
     for i in 0..d {
-        let val = F::BasePrimeField::from_be_bytes_mod_order(&bz[i*len_per_elem..(i+1)*len_per_elem]);
+        let val = F::BasePrimeField::from_be_bytes_mod_order(
+            &bz[i * len_per_elem..(i + 1) * len_per_elem],
+        );
         base_field_elems.push(val);
     }
     F::from_base_prime_field_elems(&base_field_elems)
@@ -96,7 +94,7 @@ impl<F: Field, H: VariableOutput + Update + Sized + Clone> HashToField<F>
         let mut result = Vec::with_capacity(self.count);
         let len_per_elem = hashed_bytes.len() / self.count;
         for i in 0..self.count {
-            let bz_per_elem = &hashed_bytes[i*len_per_elem..(i+1)*len_per_elem];
+            let bz_per_elem = &hashed_bytes[i * len_per_elem..(i + 1) * len_per_elem];
             let val = map_bytes_to_field_elem::<F>(bz_per_elem).unwrap();
             result.push(val);
         }

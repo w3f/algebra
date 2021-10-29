@@ -10,10 +10,8 @@
 #[macro_use]
 extern crate derivative;
 
-extern crate ark_std;
-
 #[macro_use]
-extern crate std;
+extern crate ark_std;
 
 use crate::group::Group;
 use ark_ff::{

@@ -1,20 +1,18 @@
-use ark_ff::{
-    biginteger::{BigInteger256, BigInteger64},
-    field_new,
-    fields::{FftParameters, Fp384, Fp384Parameters, FpParameters, Fp256, Fp256Parameters, Fp64, Fp64Parameters},
-};
-use crate::{ModelParameters, models::SWModelParameters};
+use super::map_to_curve_hasher::{MapToCurve, MapToCurveBasedHasher};
+use crate::hashing::curve_maps::swu::{SWUMap, SWUParams};
+use crate::hashing::curve_maps::wb::{WBMap, WBParams};
+use crate::hashing::{field_hashers::DefaultFieldHasher, HashToCurve};
 use crate::short_weierstrass_jacobian::GroupAffine;
-use crate::hashing::curve_maps::swu::{SWUParams, SWUMap};
-use crate::hashing::curve_maps::wb::{WBParams, WBMap};
-use super::map_to_curve_hasher::{MapToCurveBasedHasher, MapToCurve};
-use crate::hashing::{field_hashers::DefaultFieldHasher, HashToCurve, HashToCurveError};
+use crate::{models::SWModelParameters, ModelParameters};
 
-use ark_ff::{SquareRootField};
+use ark_ff::fields::Fp64;
+use ark_ff::fields::Fp64Parameters;
+use ark_ff::fields::FpParameters;
+use ark_ff::{biginteger::BigInteger64, field_new, fields::FftParameters};
+
+use ark_ff::SquareRootField;
 use ark_std::vec::Vec;
 use std::collections::HashMap;
-
-use ark_poly::{Polynomial, UVPolynomial, univariate::{DensePolynomial}};
 
 pub type F127 = Fp64<F127Parameters>;
 
@@ -61,7 +59,7 @@ impl FpParameters for F127Parameters {
     // sage: m = R(127)
     // sage: m^(-1)
     // 9150747060186627967
-    // sage: -m^(-1) 
+    // sage: -m^(-1)
     // 9295997013522923649
     const INV: u64 = 9295997013522923649;
 
@@ -115,7 +113,7 @@ impl ModelParameters for TestSWUMapToCurveParams {
 ///             print(E)
 ///     except:
 ///         pass
-/// 
+///
 /// y^2 = x^3 + x + 63
 ///
 impl SWModelParameters for TestSWUMapToCurveParams {
@@ -134,16 +132,12 @@ impl SWModelParameters for TestSWUMapToCurveParams {
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
         (field_new!(F127, "62"), field_new!(F127, "70"));
-
-
 }
 
 impl SWUParams for TestSWUMapToCurveParams {
-
-    const XI : F127 = field_new!(F127, "-1");
+    const XI: F127 = field_new!(F127, "-1");
     const ZETA: F127 = field_new!(F127, "3");
     const XI_ON_ZETA_SQRT: F127 = field_new!(F127, "13");
-
 }
 
 ///test that field_new make a none zero element out of 1
@@ -154,7 +148,7 @@ fn test_field_element_construction() {
     let a3 = F127::from(125);
 
     assert!(F127::from(0) == a2 + a3);
-    assert!(F127::from(0) == a2*a1 + a3);
+    assert!(F127::from(0) == a2 * a1 + a3);
 }
 
 #[test]
@@ -163,33 +157,34 @@ fn test_field_division() {
     let den = F127::from(0x7b);
     let num_on_den = F127::from(0x50);
 
-    assert!(num/den == num_on_den);
+    assert!(num / den == num_on_den);
 }
-    
 
 /// Testing checking the hashing parameters are sane
-///check zeta is a non-square
+/// check zeta is a non-square
 #[test]
-fn chceking_the_hsahing_parameters() {
+fn checking_the_hashing_parameters() {
     assert!(SquareRootField::legendre(&TestSWUMapToCurveParams::ZETA).is_qr() == false);
-    
 }
 
-/// The point of the test is to get a  simpl SWU compatible curve
-/// and make simple hash
+/// The point of the test is to get a simple, SWU-compatible curve
+/// and make a simple hash
 #[test]
 fn hash_arbitary_string_to_curve_swu() {
-    use blake2::{VarBlake2b};
+    use blake2::VarBlake2b;
 
-    let test_swu_to_curve_hasher = MapToCurveBasedHasher::<GroupAffine<TestSWUMapToCurveParams>, DefaultFieldHasher<VarBlake2b>, SWUMap<TestSWUMapToCurveParams>>::new(&[1]).unwrap();
-    
+    let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
+        GroupAffine<TestSWUMapToCurveParams>,
+        DefaultFieldHasher<VarBlake2b>,
+        SWUMap<TestSWUMapToCurveParams>,
+    >::new(&[1])
+    .unwrap();
+
     let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
 
-    
-    println!("{:?}, {:?}", hash_result, hash_result.x, );
+    println!("{:?}, {:?}", hash_result, hash_result.x,);
 
     assert!(hash_result.x != F127_ZERO);
-
 }
 
 /// the test use a simple SWU compatible curve
@@ -197,27 +192,39 @@ fn hash_arbitary_string_to_curve_swu() {
 /// The map is not constant and that everything can be mapped and nobody panics
 #[test]
 fn map_field_to_curve_swu() {
-    let test_map_to_curve =  SWUMap::<TestSWUMapToCurveParams>::new_map_to_curve(&[0]).unwrap();
+    let test_map_to_curve = SWUMap::<TestSWUMapToCurveParams>::new_map_to_curve(&[0]).unwrap();
 
-    let mut map_range : Vec<GroupAffine<TestSWUMapToCurveParams>> = vec![];
+    let mut map_range: Vec<GroupAffine<TestSWUMapToCurveParams>> = vec![];
     for current_field_element in 0..127 {
-        map_range.push(test_map_to_curve.map_to_curve(F127::from(current_field_element)).unwrap());
+        map_range.push(
+            test_map_to_curve
+                .map_to_curve(F127::from(current_field_element))
+                .unwrap(),
+        );
     }
 
     let mut counts = HashMap::new();
 
-    let mode = map_range.iter().copied().max_by_key(|&n| {
-        let count = counts.entry(n).or_insert(0);
-        *count += 1;
-        *count
-    }).unwrap();
+    let mode = map_range
+        .iter()
+        .copied()
+        .max_by_key(|&n| {
+            let count = counts.entry(n).or_insert(0);
+            *count += 1;
+            *count
+        })
+        .unwrap();
 
-    println!("mode {} repeated {} times", mode, counts.get(&mode).unwrap());
+    println!(
+        "mode {} repeated {} times",
+        mode,
+        counts.get(&mode).unwrap()
+    );
 
     assert!(*counts.get(&mode).unwrap() != 127);
 }
 
-//Testing wb19 on  small curvse
+// Testing wb19 on small curves
 // E_isogenous : Elliptic Curve defined by y^2 = x^3 + 109*x + 124 over Finite Field of size 127
 // E : y^2 = x^3 + 3
 // Isogeny map
@@ -252,14 +259,12 @@ impl SWModelParameters for TestSWU127MapToIsogenousCurveParams {
 }
 
 impl SWUParams for TestSWU127MapToIsogenousCurveParams {
-
-    const XI : F127 = field_new!(F127, "-1");
+    const XI: F127 = field_new!(F127, "-1");
     const ZETA: F127 = field_new!(F127, "3");
     const XI_ON_ZETA_SQRT: F127 = field_new!(F127, "13");
-
 }
 
-//The struct defining our parameters for the target curve
+// The struct defining the parameters for the target curve
 struct TestWBF127MapToCurveParams;
 
 impl ModelParameters for TestWBF127MapToCurveParams {
@@ -294,36 +299,99 @@ impl WBParams for TestWBF127MapToCurveParams
     type IsogenousCurve = TestSWU127MapToIsogenousCurveParams;
 
     const PHI_X_NOM: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
-field_new!(F127, "4"), field_new!(F127, "63"), field_new!(F127, "23"), field_new!(F127, "39"), field_new!(F127, "-14"), field_new!(F127, "23"), field_new!(F127, "-32"), field_new!(F127, "32"), field_new!(F127, "-13"), field_new!(F127, "40"), field_new!(F127, "34"), field_new!(F127, "10"), field_new!(F127, "-21"), field_new!(F127, "-57")
-];
+        field_new!(F127, "4"),
+        field_new!(F127, "63"),
+        field_new!(F127, "23"),
+        field_new!(F127, "39"),
+        field_new!(F127, "-14"),
+        field_new!(F127, "23"),
+        field_new!(F127, "-32"),
+        field_new!(F127, "32"),
+        field_new!(F127, "-13"),
+        field_new!(F127, "40"),
+        field_new!(F127, "34"),
+        field_new!(F127, "10"),
+        field_new!(F127, "-21"),
+        field_new!(F127, "-57"),
+    ];
 
     const PHI_X_DEN: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
-field_new!(F127, "2"), field_new!(F127, "31"), field_new!(F127, "-10"), field_new!(F127, "-20"), field_new!(F127, "63"), field_new!(F127, "-44"), field_new!(F127, "34"), field_new!(F127, "30"), field_new!(F127, "-30"), field_new!(F127, "-33"), field_new!(F127, "11"), field_new!(F127, "-13"), field_new!(F127, "1")
-];
+        field_new!(F127, "2"),
+        field_new!(F127, "31"),
+        field_new!(F127, "-10"),
+        field_new!(F127, "-20"),
+        field_new!(F127, "63"),
+        field_new!(F127, "-44"),
+        field_new!(F127, "34"),
+        field_new!(F127, "30"),
+        field_new!(F127, "-30"),
+        field_new!(F127, "-33"),
+        field_new!(F127, "11"),
+        field_new!(F127, "-13"),
+        field_new!(F127, "1"),
+    ];
 
     const PHI_Y_NOM: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
-field_new!(F127, "-34"), field_new!(F127, "-57"), field_new!(F127, "30"), field_new!(F127, "-18"), field_new!(F127, "-60"), field_new!(F127, "-43"), field_new!(F127, "-63"), field_new!(F127, "-18"), field_new!(F127, "-49"), field_new!(F127, "36"), field_new!(F127, "12"), field_new!(F127, "62"), field_new!(F127, "5"), field_new!(F127, "6"), field_new!(F127, "-7"), field_new!(F127, "48"), field_new!(F127, "41"), field_new!(F127, "59"), field_new!(F127, "10")
-];
+        field_new!(F127, "-34"),
+        field_new!(F127, "-57"),
+        field_new!(F127, "30"),
+        field_new!(F127, "-18"),
+        field_new!(F127, "-60"),
+        field_new!(F127, "-43"),
+        field_new!(F127, "-63"),
+        field_new!(F127, "-18"),
+        field_new!(F127, "-49"),
+        field_new!(F127, "36"),
+        field_new!(F127, "12"),
+        field_new!(F127, "62"),
+        field_new!(F127, "5"),
+        field_new!(F127, "6"),
+        field_new!(F127, "-7"),
+        field_new!(F127, "48"),
+        field_new!(F127, "41"),
+        field_new!(F127, "59"),
+        field_new!(F127, "10"),
+    ];
 
     const PHI_Y_DEN: &'static [<Self::IsogenousCurve as ModelParameters>::BaseField] = &[
-field_new!(F127, "32"), field_new!(F127, "-18"), field_new!(F127, "-24"), field_new!(F127, "23"), field_new!(F127, "18"), field_new!(F127, "-55"), field_new!(F127, "-16"), field_new!(F127, "-61"), field_new!(F127, "-46"), field_new!(F127, "-13"), field_new!(F127, "-42"), field_new!(F127, "11"), field_new!(F127, "-30"), field_new!(F127, "38"), field_new!(F127, "3"), field_new!(F127, "52"), field_new!(F127, "-63"), field_new!(F127, "44"), field_new!(F127, "1")
-];
-
+        field_new!(F127, "32"),
+        field_new!(F127, "-18"),
+        field_new!(F127, "-24"),
+        field_new!(F127, "23"),
+        field_new!(F127, "18"),
+        field_new!(F127, "-55"),
+        field_new!(F127, "-16"),
+        field_new!(F127, "-61"),
+        field_new!(F127, "-46"),
+        field_new!(F127, "-13"),
+        field_new!(F127, "-42"),
+        field_new!(F127, "11"),
+        field_new!(F127, "-30"),
+        field_new!(F127, "38"),
+        field_new!(F127, "3"),
+        field_new!(F127, "52"),
+        field_new!(F127, "-63"),
+        field_new!(F127, "44"),
+        field_new!(F127, "1"),
+    ];
 }
 
 /// The point of the test is to get a  simpl SWU compatible curve
 /// and make simple hash
 #[test]
 fn hash_arbitary_string_to_curve_wb() {
-    use blake2::{VarBlake2b};
+    use blake2::VarBlake2b;
 
-    let test_wb_to_curve_hasher = MapToCurveBasedHasher::<GroupAffine<TestWBF127MapToCurveParams>, DefaultFieldHasher<VarBlake2b>, WBMap<TestWBF127MapToCurveParams>>::new(&[1]).unwrap();
-    
+    let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
+        GroupAffine<TestWBF127MapToCurveParams>,
+        DefaultFieldHasher<VarBlake2b>,
+        WBMap<TestWBF127MapToCurveParams>,
+    >::new(&[1])
+    .unwrap();
+
     let hash_result = test_wb_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
-    
+
     println!("the wb hash is: {:?}", hash_result);
 
     assert!(hash_result.x != F127_ZERO);
-
 }
-

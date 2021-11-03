@@ -5,7 +5,7 @@ use ark_std::{marker::PhantomData, vec::Vec};
 
 /// Trait for mapping an arbitrary field element to a group element
 /// on an elliptic curve
-pub trait MapToCurve<T: AffineCurve>: Sized{
+pub trait MapToCurve<T: AffineCurve>: Sized {
     /// Create a new MapToCurve instance, with a given domain.
     fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError>;
 
@@ -20,6 +20,29 @@ pub trait HashToField<F: Field>: Sized {
     fn hash_to_field(&self, msg: &[u8]) -> Result<Vec<F>, HashToCurveError>;
 }
 
+/// Helper struct that can be used to construct elements on the elliptic curve
+/// from arbitrary messages, by first hashing the message onto a field element
+/// and then mapping it to the elliptic curve defined over that field.
+///
+/// # Examples
+///
+/// ```
+/// # use blake2::VarBlake2b;
+/// # use ark_test_curves::{g1_swu_iso::Parameters};
+/// # use ark_ec::hashing::field_hashers::DefaultFieldHasher;
+/// # use ark_ec::hashing::map_to_curve_hasher::MapToCurveBasedHasher;
+/// # use ark_ec::hashing::curve_maps::swu::{SWUMap, SWUParams};
+/// # use ark_ec::hashing::HashToCurve;
+/// # use ark_ec::models::bls12::G1Affine;
+/// let test_hasher = MapToCurveBasedHasher::<
+///     G1Affine<Parameters>,
+///     DefaultFieldHasher<VarBlake2b>,
+///     SWUMap<Parameters>,
+/// >::new(&[1])
+/// .unwrap();
+/// let result = test_hasher.hash(b"random data");
+/// assert!(true);
+/// ```
 pub struct MapToCurveBasedHasher<T, H2F, M2C>
 where
     T: AffineCurve,

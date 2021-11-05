@@ -35,10 +35,24 @@ fn map_bytes_to_field_elem<F: Field>(bz: &[u8]) -> Option<F> {
     F::from_base_prime_field_elems(&base_field_elems)
 }
 
-// This field hasher constructs a Hash to Field from a variable output hash function.
-// It handles domains by hashing the input domain into 256 bits, and prefixes
-// these bits to every message it computes the hash of.
-// The state after prefixing the domain is cached.
+/// This field hasher constructs a Hash to Field from a variable output hash function.
+/// It handles domains by hashing the input domain into 256 bits, and prefixes
+/// these bits to every message it computes the hash of.
+/// The state after prefixing the domain is cached.
+///
+/// # Examples
+///
+/// ```
+/// # use ark_test_curves::bls12_381::Fq;
+/// # use ark_ec::hashing::field_hashers::DefaultFieldHasher;
+/// # use blake2::VarBlake2b;
+/// # use crate::ark_ec::hashing::map_to_curve_hasher::HashToField;
+///
+/// let hasher = <DefaultFieldHasher<VarBlake2b> as HashToField<Fq>>::new_hash_to_field(&[1, 2, 3], 2).unwrap();
+/// let field_elements: Vec<Fq> = hasher.hash_to_field(b"Hello, World!").unwrap();
+///
+/// assert_eq!(field_elements.len(), 2);
+/// ```
 pub struct DefaultFieldHasher<H: VariableOutput + Update + Sized + Clone> {
     // This hasher should already have the domain applied to it.
     domain_seperated_hasher: H,

@@ -1,12 +1,10 @@
 use core::marker::PhantomData;
 
-use ark_ff::{batch_inversion, vec::Vec};
-use ark_poly::{Polynomial, UVPolynomial, univariate::{DensePolynomial}};
-use ark_std::string::ToString;
 use crate::models::SWModelParameters;
 use crate::ModelParameters;
-use ark_ff::vec::Vec;
+use ark_ff::{batch_inversion, vec::Vec};
 use ark_poly::{univariate::DensePolynomial, Polynomial, UVPolynomial};
+use ark_std::string::ToString;
 
 use crate::hashing::map_to_curve_hasher::MapToCurve;
 use crate::hashing::HashToCurveError;
@@ -45,15 +43,16 @@ pub trait WBParams: SWModelParameters + Sized {
 
         let y_den : DensePolynomial<<Self::IsogenousCurve as ModelParameters>::BaseField> = <DensePolynomial<<Self::IsogenousCurve as ModelParameters>::BaseField>>::from_coefficients_slice(&Self::PHI_Y_DEN[..]);
 
-        let mut v:[<Self as ModelParameters>::BaseField;2] = [x_den.evaluate(&domain_point.x), y_den.evaluate(&domain_point.x)];
-        batch_inversion(& mut v);
-        let img_x = x_num.evaluate(&domain_point.x) *  v[0];
+        let mut v: [<Self as ModelParameters>::BaseField; 2] = [
+            x_den.evaluate(&domain_point.x),
+            y_den.evaluate(&domain_point.x),
+        ];
+        batch_inversion(&mut v);
+        let img_x = x_num.evaluate(&domain_point.x) * v[0];
         let img_y = (y_num.evaluate(&domain_point.x) * domain_point.y) * v[1];
 
-         Ok(GroupAffine::<Self>::new(img_x, img_y, false))	
-
+        Ok(GroupAffine::<Self>::new(img_x, img_y, false))
     }
-
 }
 
 pub struct WBMap<P: WBParams> {
@@ -64,27 +63,30 @@ pub struct WBMap<P: WBParams> {
 
 impl<P: WBParams> MapToCurve<GroupAffine<P>> for WBMap<P> {
     ///This is to verify if the provided WBparams makes sense, doesn't do much for now
-    fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError>
-    {       
-
+    fn new_map_to_curve(domain: &[u8]) -> Result<Self, HashToCurveError> {
         //Verifying that the isogeny maps the generator of the SWU curve into us
-        let isogenous_curve_generator = GroupAffine::<P::IsogenousCurve>::new(P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.0, P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.1, false);
+        let isogenous_curve_generator = GroupAffine::<P::IsogenousCurve>::new(
+            P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.0,
+            P::IsogenousCurve::AFFINE_GENERATOR_COEFFS.1,
+            false,
+        );
 
-        match (P::isogeny_map(isogenous_curve_generator)) {
-            Ok(point_on_curve) => if   !point_on_curve.is_on_curve() {
-                println!("Domain Point: {}", isogenous_curve_generator);
-                println!("Codomain Point: {}", point_on_curve);                
-                return Err(HashToCurveError::MapToCurveError("the isogeny map does not map the generator of its domain into its codomain.".to_string()));
-            },
-            Err(e) => return Err(e)
+        match P::isogeny_map(isogenous_curve_generator) {
+            Ok(point_on_curve) => {
+                if !point_on_curve.is_on_curve() {
+                    println!("Domain Point: {}", isogenous_curve_generator);
+                    println!("Codomain Point: {}", point_on_curve);
+                    return Err(HashToCurveError::MapToCurveError("the isogeny map does not map the generator of its domain into its codomain.".to_string()));
+                }
+            }
+            Err(e) => return Err(e),
         }
 
-        Ok(
-            WBMap {
-                domain: domain.to_vec(),
-                swu_field_curve_hasher : SWUMap::<P::IsogenousCurve>::new_map_to_curve(&domain).unwrap(),
-                //map_to_isogenous_curve: SWUMap<Self::IsogenousCurve>;
-                curve_params: PhantomData,
+        Ok(WBMap {
+            domain: domain.to_vec(),
+            swu_field_curve_hasher: SWUMap::<P::IsogenousCurve>::new_map_to_curve(&domain).unwrap(),
+            //map_to_isogenous_curve: SWUMap<Self::IsogenousCurve>;
+            curve_params: PhantomData,
         })
     }
 

@@ -64,17 +64,18 @@ impl<F: PrimeField, H: FixedOutput + Digest + Sized + Clone> HashToField<F>
     for DefaultFieldHasher<H>
 {
     fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError> {
+        // TODO check whether this is the same as
+        // hasher.update(self.domain).update(self.domain.len() as u8);
+        let mut dst_prime: Vec<u8> = domain.to_vec();
+        dst_prime.push(domain.len() as u8);
+
         // Create hasher and map the error type
         let hasher = H::new();
 
-        // let mut hasher = match H::new() {
-        //     Ok(hasher) => hasher,
-        //     Err(err) => return Err(HashToCurveError::DomainError(err.to_string())),
-        // };
         Ok(DefaultFieldHasher {
             hasher,
             count,
-            domain: domain.to_vec(),
+            domain: dst_prime,
         })
     }
 
@@ -88,10 +89,6 @@ impl<F: PrimeField, H: FixedOutput + Digest + Sized + Clone> HashToField<F>
         let security_parameter = 128;
         let len_per_elem = get_len_per_elem::<F>(security_parameter);
         let len_in_bytes = self.count * F::extension_degree() as usize * len_per_elem;
-        // TODO check whether this is the same as
-        // hasher.update(self.domain).update(self.domain.len() as u8);
-        let mut DST_prime: Vec<u8> = self.domain.clone();
-        DST_prime.push(self.domain.len() as u8);
 
         // TODO ensure ell is ceil(...)
         let ell: usize = len_in_bytes / b_in_bytes;
@@ -109,16 +106,16 @@ impl<F: PrimeField, H: FixedOutput + Digest + Sized + Clone> HashToField<F>
         b_0_hasher.update(message);
         b_0_hasher.update(&[0, (l_i_b_str) as u8]);
         b_0_hasher.update(&[0]);
-        b_0_hasher.update(&DST_prime);
         let mut b_0: Vec<u8> = Vec::with_capacity(b_in_bytes);
         b_0.copy_from_slice(&b_0_hasher.finalize());
+        b_0_hasher.update(&self.domain);
 
         let mut b_1_hasher = self.hasher.clone();
         b_1_hasher.update(&b_0);
         b_1_hasher.update(&[1]);
-        b_1_hasher.update(&DST_prime);
         let mut b_1: Vec<u8> = Vec::with_capacity(b_in_bytes);
         b_1.copy_from_slice(&b_1_hasher.finalize());
+        b_1_hasher.update(&self.domain);
 
         uniform_bytes.push(b_0);
         uniform_bytes.push(b_1);
@@ -131,11 +128,11 @@ impl<F: PrimeField, H: FixedOutput + Digest + Sized + Clone> HashToField<F>
                 b_i_hasher.update(&[*l ^ *r]);
             }
             b_i_hasher.update(&[i as u8]);
-            b_i_hasher.update(&DST_prime);
             let mut b_i = Vec::with_capacity(b_in_bytes);
             b_i.copy_from_slice(&b_i_hasher.finalize());
             // let b_i = b_i_hasher.finalize();
             uniform_bytes.push(b_i);
+            b_i_hasher.update(&self.domain);
         }
 
         for (big, buf) in uniform_bytes.iter().zip(output.iter_mut()) {

@@ -110,42 +110,36 @@ impl<F: PrimeField, H: FixedOutput + Digest + Sized + Clone> HashToField<F>
         b_0_hasher.update(message);
         b_0_hasher.update(&[0, (l_i_b_str) as u8]);
         b_0_hasher.update(&[0]);
-        let mut b_0: Vec<u8> = Vec::with_capacity(b_in_bytes);
-        b_0.copy_from_slice(&b_0_hasher.finalize());
         b_0_hasher.update(&self.domain);
+        let b_0 = b_0_hasher.finalize().to_vec();
 
         let mut b_1_hasher = self.hasher.clone();
         b_1_hasher.update(&b_0);
         b_1_hasher.update(&[1]);
-        let mut b_1: Vec<u8> = Vec::with_capacity(b_in_bytes);
-        b_1.copy_from_slice(&b_1_hasher.finalize());
         b_1_hasher.update(&self.domain);
+        let b_1 = b_1_hasher.finalize().to_vec();
 
-        uniform_bytes.push(b_0);
-        uniform_bytes.push(b_1);
+        uniform_bytes.push(b_1.clone());
 
-        // let mut b_i = b_1.clone();
+        let mut b_i = b_1.clone();
         for i in 2..=ell {
             let mut b_i_hasher = self.hasher.clone();
-            // zip b_0 and b_i
-            for (l, r) in uniform_bytes[0].iter().zip(uniform_bytes[i - 1].iter()) {
+            // update the hasher with xor of b_0 and b_i elements
+            for (l, r) in b_0.iter().zip(b_i.iter()) {
                 b_i_hasher.update(&[*l ^ *r]);
             }
             b_i_hasher.update(&[i as u8]);
-            let mut b_i = Vec::with_capacity(b_in_bytes);
-            b_i.copy_from_slice(&b_i_hasher.finalize());
-            // let b_i = b_i_hasher.finalize();
-            uniform_bytes.push(b_i);
             b_i_hasher.update(&self.domain);
+            // redefine latest b_i
+            b_i = b_i_hasher.finalize().to_vec();
+            uniform_bytes.push(b_i.clone());
         }
 
-        for (big, buf) in uniform_bytes.iter().zip(output.iter_mut()) {
-            // let mut little = [0u8; CHUNKLEN];
-            // little.copy_from_slice(big);
-            // little.reverse();
-            // *buf = F::from_be_bytes_mod_order(&little);
-            *buf = <F as PrimeField>::from_be_bytes_mod_order(big);
+        for bytes in uniform_bytes.iter() {
+            let f = <F as PrimeField>::from_be_bytes_mod_order(bytes);
+            output.push(f);
         }
+
         Ok(output)
     }
 }

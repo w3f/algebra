@@ -171,18 +171,16 @@ fn checking_the_hashing_parameters() {
 /// and make a simple hash
 #[test]
 fn hash_arbitary_string_to_curve_swu() {
-    use blake2::VarBlake2b;
+    use sha2::Sha256;
 
     let test_swu_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestSWUMapToCurveParams>,
-        DefaultFieldHasher<VarBlake2b>,
+        DefaultFieldHasher<Sha256>,
         SWUMap<TestSWUMapToCurveParams>,
     >::new(&[1])
     .unwrap();
 
     let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
-
-    println!("{:?}, {:?}", hash_result, hash_result.x,);
 
     assert!(hash_result.x != F127_ZERO);
 }
@@ -214,12 +212,6 @@ fn map_field_to_curve_swu() {
             *count
         })
         .unwrap();
-
-    println!(
-        "mode {} repeated {} times",
-        mode,
-        counts.get(&mode).unwrap()
-    );
 
     assert!(*counts.get(&mode).unwrap() != 127);
 }
@@ -380,18 +372,16 @@ impl WBParams for TestWBF127MapToCurveParams
 /// and make simple hash
 #[test]
 fn hash_arbitary_string_to_curve_wb() {
-    use blake2::VarBlake2b;
+    use sha2::Sha256;
 
     let test_wb_to_curve_hasher = MapToCurveBasedHasher::<
         GroupAffine<TestWBF127MapToCurveParams>,
-        DefaultFieldHasher<VarBlake2b>,
+        DefaultFieldHasher<Sha256>,
         WBMap<TestWBF127MapToCurveParams>,
     >::new(&[1])
     .unwrap();
 
     let hash_result = test_wb_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
-
-    println!("the wb hash is: {:?}", hash_result);
 
     assert!(hash_result.x != F127_ZERO);
 }

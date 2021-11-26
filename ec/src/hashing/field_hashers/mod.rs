@@ -42,12 +42,12 @@ fn map_bytes_to_field_elem<F: Field>(bz: &[u8]) -> Option<F> {
 /// # Examples
 ///
 /// ```
-/// # use ark_test_curves::bls12_381::Fq;
-/// # use ark_ec::hashing::field_hashers::DefaultFieldHasher;
-/// # use blake2::VarBlake2b;
-/// # use crate::ark_ec::hashing::map_to_curve_hasher::HashToField;
+/// use ark_test_curves::bls12_381::Fq;
+/// use ark_ec::hashing::field_hashers::DefaultFieldHasher;
+/// use sha2::Sha256;
+/// use crate::ark_ec::hashing::map_to_curve_hasher::HashToField;
 ///
-/// let hasher = <DefaultFieldHasher<VarBlake2b> as HashToField<Fq>>::new_hash_to_field(&[1, 2, 3], 2).unwrap();
+/// let hasher = <DefaultFieldHasher<Sha256> as HashToField<Fq>>::new_hash_to_field(&[1, 2, 3], 2).unwrap();
 /// let field_elements: Vec<Fq> = hasher.hash_to_field(b"Hello, World!").unwrap();
 ///
 /// assert_eq!(field_elements.len(), 2);

@@ -80,17 +80,21 @@ impl<F: PrimeField, H: FixedOutput + Digest + Sized + Clone> HashToField<F>
     }
 
     fn hash_to_field(&self, message: &[u8]) -> Result<Vec<F>, HashToCurveError> {
-        // Assume that the field size is 32 bytes and k is 256, where k is defined in
-        // <https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-10.html#name-security-considerations-3>.
-        const CHUNKLEN: usize = 64;
-
+        // output size of the hash function, e.g. 32 bytes = 256 bits for sha2::Sha256
         let b_in_bytes: usize = H::output_size();
-        // Hardcode security parameter, k
+        // Hardcoded security parameter, defined as `k` in:
+        // <https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-10.html#name-security-considerations-3>.
+        // TODO this could be parametrised
         let security_parameter = 128;
+
+        // The final output of `hash_to_field` will be an array of field
+        // elements from F::BaseField, each of size `len_per_elem`.
         let len_per_elem = get_len_per_elem::<F>(security_parameter);
+        // There are a total of `count` elements of F_p^m,
+        // each comprising `m` base field elements.
         let len_in_bytes = self.count * F::extension_degree() as usize * len_per_elem;
 
-        // TODO ensure ell is ceil(...)
+        // TODO ensure ell is ceil(expression)
         let ell: usize = len_in_bytes / b_in_bytes;
 
         // Input block size of sha256

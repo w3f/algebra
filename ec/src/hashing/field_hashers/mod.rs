@@ -149,3 +149,17 @@ impl<F: PrimeField, H: FixedOutput + Digest + Sized + Clone> HashToField<F>
         Ok(output)
     }
 }
+
+#[cfg(test)]
+mod default_hasher_tests {
+    use super::*;
+    use ark_test_curves::bls12_381::{Fq, Fq2};
+
+    #[test]
+    fn test_get_len_per_elem() {
+        let fq_len = get_len_per_elem::<Fq>(128);
+        let fq2_len = get_len_per_elem::<Fq2>(128);
+        assert_eq!(fq_len, fq2_len);
+        assert_eq!(fq_len, 64);
+    }
+}

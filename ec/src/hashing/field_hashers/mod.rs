@@ -53,10 +53,10 @@ fn map_bytes_to_field_elem<F: Field>(bz: &[u8]) -> Option<F> {
 /// assert_eq!(field_elements.len(), 2);
 /// ```
 pub struct DefaultFieldHasher<H: FixedOutput + Digest + Sized + Clone> {
-    // This hasher should already have the domain applied to it.
     hasher: H,
     count: usize,
     domain: Vec<u8>,
+    len_per_base_elem: usize,
 }
 
 // Implement HashToField from F and a variable output hash
@@ -72,16 +72,6 @@ impl<F: PrimeField, H: FixedOutput + Digest + Sized + Clone> HashToField<F>
         // Create hasher and map the error type
         let hasher = H::new();
 
-        Ok(DefaultFieldHasher {
-            hasher,
-            count,
-            domain: dst_prime,
-        })
-    }
-
-    fn hash_to_field(&self, message: &[u8]) -> Result<Vec<F>, HashToCurveError> {
-        // output size of the hash function, e.g. 32 bytes = 256 bits for sha2::Sha256
-        let b_in_bytes: usize = H::output_size();
         // Hardcoded security parameter, defined as `k` in:
         // <https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-10.html#name-security-considerations-3>.
         // TODO this could be parametrised
@@ -89,13 +79,29 @@ impl<F: PrimeField, H: FixedOutput + Digest + Sized + Clone> HashToField<F>
 
         // The final output of `hash_to_field` will be an array of field
         // elements from F::BaseField, each of size `len_per_elem`.
-        let len_per_elem = get_len_per_elem::<F>(security_parameter);
+        let len_per_base_elem = get_len_per_elem::<F>(security_parameter);
+
+        Ok(DefaultFieldHasher {
+            hasher,
+            count,
+            domain: dst_prime,
+            len_per_base_elem,
+        })
+    }
+
+    fn hash_to_field(&self, message: &[u8]) -> Result<Vec<F>, HashToCurveError> {
+        // output size of the hash function, e.g. 32 bytes = 256 bits for sha2::Sha256
+        let b_in_bytes: usize = H::output_size();
+
+        let m = F::extension_degree() as usize;
+
         // There are a total of `count` elements of F_p^m,
         // each comprising `m` base field elements.
-        let len_in_bytes = self.count * F::extension_degree() as usize * len_per_elem;
+        let len_in_bytes = self.count * m * self.len_per_base_elem;
 
-        // TODO ensure ell is ceil(expression)
-        let ell: usize = len_in_bytes / b_in_bytes;
+        // total length of output divided by output size of the hash function
+        // = number of elements to output
+        let ell: usize = (len_in_bytes + b_in_bytes - 1) / b_in_bytes;
 
         // Input block size of sha256
         const S_IN_BYTES: usize = 64;

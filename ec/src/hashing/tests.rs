@@ -25,14 +25,11 @@ use ark_ff::{
     field_new,
     fields::{FftParameters, Fp384, Fp384Parameters, FpParameters, Fp256, Fp256Parameters, Fp64, Fp64Parameters},
 };
-use crate::{ModelParameters, models::SWModelParameters, AffineCurve};
-use crate::short_weierstrass_jacobian::GroupAffine;
-use crate::hashing::curve_maps::swu::{SWUParams, SWUMap};
-use super::map_to_curve_hasher::{MapToCurveBasedHasher, MapToCurve};
-use crate::hashing::{map_to_curve_hasher::HashToField, field_hashers::DefaultFieldHasher,HashToCurve};
-use ark_ff::{Zero, One, Field, PrimeField, SquareRootField};
-use ark_std::vec::Vec;
-use std::collections::HashMap;
+use crate::{AffineCurve};
+
+use ark_ff::{Zero, One, Field, PrimeField};
+
+
 
 use ark_test_curves::bls12_381::fq::{Fq as Fq381};
 use ark_test_curves::bls12_381::fr::{Fr as Fr381};
@@ -192,7 +189,7 @@ fn test_field_division() {
 /// Testing checking the hashing parameters are sane
 /// check zeta is a non-square
 #[test]
-fn chceking_the_hsahing_parameters() {
+fn checking_the_hashing_parameters() {
     assert!(SquareRootField::legendre(&TestSWUMapToCurveParams::ZETA).is_qr() == false);
 }
 
@@ -447,36 +444,16 @@ impl ModelParameters for TestSWUMapToCurveBLS12_381Params {
     type BaseField = Fq381;
     type ScalarField = Fr381;
 }
-impl SWModelParameters for Parameters {
+
+impl SWModelParameters for TestSWUMapToCurveBLS12_381Params {
     //const COEFF_A: Fq = field_new!(Fq, "012190336318893619529228877361869031420615612348429846051986726275283378313155663745811710833465465981901188123677"); //sage doesn't approve of this
-     const COEFF_A: Fq = field_new!(Fq, "2858613208430792460670318198342879349494999260436483523154854961351063857243634726019465176474256126859776719994977");
+     const COEFF_A: Fq381 = field_new!(Fq381, "2858613208430792460670318198342879349494999260436483523154854961351063857243634726019465176474256126859776719994977");
 
     #[rustfmt::skip]
-    const COEFF_B: Fq = field_new!(Fq, "2906670324641927570491258158026293881577086121416628140204402091718288198173574630967936031029026176254968826637280");
+    const COEFF_B: Fq381 = field_new!(Fq381, "2906670324641927570491258158026293881577086121416628140204402091718288198173574630967936031029026176254968826637280");
 
     //sage: g1_iso.domain().order()/52435875175126190479447740508185965837690552500527637822603658699938581184513
     //76329603384216526031706109802092473003
-    /// COFACTOR = (x - 1)^2 / 3  = 76329603384216526031706109802092473003
-    const COFACTOR: &'static [u64] = &[0x8c00aaab0000aaab, 0x396c8c005555e156];
-
-    /// COFACTOR_INV = COFACTOR^{-1} mod r
-    /// = 52435875175126190458656871551744051925719901746859129887267498875565241663483
-    #[rustfmt::skip]
-    const COFACTOR_INV: Fr = field_new!(Fr, "52435875175126190458656871551744051925719901746859129887267498875565241663483");
-
-    /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
-    const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-        (G1_GENERATOR_X, G1_GENERATOR_Y);
-
-
-impl SWModelParameters for TestSWUMapToCurveBLS12_381Params {
-    /// COEFF_A = 0
-    const COEFF_A: Fq381 = field_new!(Fq381, "0");
-
-    /// COEFF_B = 4
-    #[rustfmt::skip]
-    const COEFF_B: Fq381 = field_new!(Fq381, "4");
-
     /// COFACTOR = (x - 1)^2 / 3  = 76329603384216526031706109802092473003
     const COFACTOR: &'static [u64] = &[0x8c00aaab0000aaab, 0x396c8c005555e156];
 
@@ -487,23 +464,45 @@ impl SWModelParameters for TestSWUMapToCurveBLS12_381Params {
 
     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
-        (G1_GENERATOR_X, G1_GENERATOR_Y);
+        (field_new!(Fq381, "628127623378585612843095022119507708025289394540669560027004601611569871267541856210323712812047239723504248810248"), field_new!(Fq381, "344075650239127142968089520704786925624745533124141202280424406752399324209523628375922007963596482424831722220273"));
 
-    #[inline(always)]
-    fn mul_by_a(_: &Self::BaseField) -> Self::BaseField {
-        Self::BaseField::zero()
-    }
 }
 
-/// G1_GENERATOR_X =
-/// 3685416753713387016781088315183077757961620795782546409894578378688607592378376318836054947676345821548104185464507
-#[rustfmt::skip]
-pub const G1_GENERATOR_X: Fq381 = field_new!(Fq381, "3685416753713387016781088315183077757961620795782546409894578378688607592378376318836054947676345821548104185464507");
+// impl SWModelParameters for TestSWUMapToCurveBLS12_381Params {
+//     /// COEFF_A = 0
+//     const COEFF_A: Fq381 = field_new!(Fq381, "0");
 
-/// G1_GENERATOR_Y =
-/// 1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569
-#[rustfmt::skip]
-pub const G1_GENERATOR_Y: Fq381 = field_new!(Fq381, "1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569");
+//     /// COEFF_B = 4
+//     #[rustfmt::skip]
+//     const COEFF_B: Fq381 = field_new!(Fq381, "4");
+
+//     /// COFACTOR = (x - 1)^2 / 3  = 76329603384216526031706109802092473003
+//     const COFACTOR: &'static [u64] = &[0x8c00aaab0000aaab, 0x396c8c005555e156];
+
+//     /// COFACTOR_INV = COFACTOR^{-1} mod r
+//     /// = 52435875175126190458656871551744051925719901746859129887267498875565241663483
+//     #[rustfmt::skip]
+//     const COFACTOR_INV: Fr381 = field_new!(Fr381, "52435875175126190458656871551744051925719901746859129887267498875565241663483");
+
+//     /// AFFINE_GENERATOR_COEFFS = (G1_GENERATOR_X, G1_GENERATOR_Y)
+//     const AFFINE_GENERATOR_COEFFS: (Self::BaseField, Self::BaseField) =
+//         (G1_GENERATOR_X, G1_GENERATOR_Y);
+
+//     #[inline(always)]
+//     fn mul_by_a(_: &Self::BaseField) -> Self::BaseField {
+//         Self::BaseField::zero()
+//     }
+// }
+
+// /// G1_GENERATOR_X =
+// /// 3685416753713387016781088315183077757961620795782546409894578378688607592378376318836054947676345821548104185464507
+// #[rustfmt::skip]
+// pub const G1_GENERATOR_X: Fq381 = field_new!(Fq381, "3685416753713387016781088315183077757961620795782546409894578378688607592378376318836054947676345821548104185464507");
+
+// /// G1_GENERATOR_Y =
+// /// 1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569
+// #[rustfmt::skip]
+// pub const G1_GENERATOR_Y: Fq381 = field_new!(Fq381, "1339506544944476473020471379941921221584933875938349620426543736416511423956333506472724655353366534992391756441569");
 
 // Rust does not let us to re-use the BLS12 381 definition
 // impl SWModelParameters for TestSWUMapToCurveBLS12_381Params {
@@ -525,27 +524,27 @@ pub const G1_GENERATOR_Y: Fq381 = field_new!(Fq381, "133950654494447647302047137
 
 // }
 
- impl SWUParams for TestSWUMapToCurveBLS12_381Params {
+impl SWUParams for TestSWUMapToCurveBLS12_381Params {    
+    const XI : Fq381 = field_new!(Fq381, "11"); //a nonsquare in Fq ietf standard
+    const ZETA: Fq381 = field_new!(Fq381, "2"); //arbitatry primitive root of unity (element)CHECK THE STANDARD
+    const XI_ON_ZETA_SQRT: Fq381 = field_new!(Fq381, "4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559787"); ////square root of THETA=Xi/Zet
 
-    const XI : Fq381 = field_new!(Fq381, "-1");
-     const ZETA: Fq381 = field_new!(Fq381, "3");
-     const XI_ON_ZETA_SQRT: Fq381 = field_new!(Fq381, "14");
-
- }
+}
 
  /// The point of the test is to get a  simpl SWU compatible curve
 /// and make simple hash
+#[cfg(all(feature = "default", feature = "std"))]
 #[test]
-fn hash_arbitary_string_to_curve_swu() {
+fn hash_arbitary_string_to_curve_swu_BLS_ISOGENY() {
     use blake2::{VarBlake2b};
 
-    let test_swu_to_curve_hasher = MapToCurveBasedHasher::<GroupAffine<TestSWUMapToCurveF127Params>, DefaultFieldHasher<VarBlake2b>, SWUMap<TestSWUMapToCurveF127Params>>::new(&[1]).unwrap();
+    let test_swu_to_curve_hasher = MapToCurveBasedHasher::<GroupAffine<TestSWUMapToCurveBLS12_381Params>, DefaultFieldHasher<VarBlake2b>, SWUMap<TestSWUMapToCurveBLS12_381Params>>::new(&[1]).unwrap();
     
-    let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
+    let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string t1o curve");
 
     
     println!("{:?}, {:?}", hash_result, hash_result.x, );
 
-    assert!(hash_result.x != field_new!(F127, "0"));
+    assert!(hash_result.x != field_new!(Fq381, "0"));
 
 }

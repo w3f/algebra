@@ -37,6 +37,7 @@ where
 {
     fn new(domain: &[u8]) -> Result<Self, HashToCurveError> {
         let field_hasher = H2F::new_hash_to_field(domain, 2)?;
+	println!("we didn't die before here");
         let curve_mapper = M2C::new_map_to_curve(domain)?;
         let _params_t = PhantomData;
         Ok(MapToCurveBasedHasher {

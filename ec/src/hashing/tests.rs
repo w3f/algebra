@@ -1,3 +1,4 @@
+use crate::hashing::HashToCurve;
 use crate::{
     hashing::{
         curve_maps::{
@@ -6,7 +7,6 @@ use crate::{
         },
         field_hashers::DefaultFieldHasher,
         map_to_curve_hasher::{MapToCurve, MapToCurveBasedHasher},
-        HashToCurve,
     },
     models::SWModelParameters,
     short_weierstrass_jacobian::GroupAffine,

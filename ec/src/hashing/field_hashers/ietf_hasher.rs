@@ -72,15 +72,18 @@ impl<F: Field, H: FixedOutput + Digest + Sized + Clone> HashToField<F> for IETFH
 
         // Input block size of sha256
         const S_IN_BYTES: usize = 64;
-        // TODO figure this out
-        const l_i_b_str: usize = 128;
+        // Represent `len_in_bytes` as a 2-byte array.
+        // As per I2OSP method outlined in https://tools.ietf.org/pdf/rfc8017.pdf,
+        // The program should abort if integer that we're trying to convert is too large.
+        assert!(len_in_bytes < 1<<16);
+        let l_i_b_str: [u8; 2] = (len_in_bytes as u16).to_be_bytes();
 
         let mut uniform_bytes: Vec<u8> = Vec::with_capacity(len_in_bytes);
 
         let mut b_0_hasher = self.hasher.clone();
         b_0_hasher.update(&[0; S_IN_BYTES]);
         b_0_hasher.update(message);
-        b_0_hasher.update(&[0, (l_i_b_str) as u8]);
+        b_0_hasher.update(&l_i_b_str);
         b_0_hasher.update(&[0]);
         b_0_hasher.update(&self.domain);
         let b_0 = b_0_hasher.finalize().to_vec();

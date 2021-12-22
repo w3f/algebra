@@ -6,10 +6,9 @@ use digest::{Digest, FixedOutput};
 
 use super::get_len_per_elem;
 
-/// This field hasher constructs a Hash to Field from a variable output hash function.
-/// It handles domains by hashing the input domain into 256 bits, and prefixes
-/// these bits to every message it computes the hash of.
-/// The state after prefixing the domain is cached.
+/// This field hasher constructs a Hash-To-Field based on a fixed-output hash function,
+/// like SHA2, SHA3 or Blake2.
+/// The implementation aims to follow the specification in [Hashing to Elliptic Curves (draft)](https://tools.ietf.org/pdf/draft-irtf-cfrg-hash-to-curve-13.pdf).
 ///
 /// # Examples
 ///
@@ -31,7 +30,6 @@ pub struct IETFHasher<H: FixedOutput + Digest + Sized + Clone> {
     len_per_base_elem: usize,
 }
 
-// Implement HashToField from F and a variable output hash
 impl<F: Field, H: FixedOutput + Digest + Sized + Clone> HashToField<F> for IETFHasher<H> {
     fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError> {
         // TODO check whether this is the same as

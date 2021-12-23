@@ -75,7 +75,7 @@ impl<F: Field, H: FixedOutput + Digest + Sized + Clone> HashToField<F> for IETFH
         // Represent `len_in_bytes` as a 2-byte array.
         // As per I2OSP method outlined in https://tools.ietf.org/pdf/rfc8017.pdf,
         // The program should abort if integer that we're trying to convert is too large.
-        assert!(len_in_bytes < 1<<16);
+        assert!(len_in_bytes < 1 << 16);
         let l_i_b_str: [u8; 2] = (len_in_bytes as u16).to_be_bytes();
 
         let mut uniform_bytes: Vec<u8> = Vec::with_capacity(len_in_bytes);

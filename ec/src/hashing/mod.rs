@@ -10,7 +10,7 @@ pub mod field_hashers;
 /// Trait for hashing arbitrary data to a group element on an elliptic curve
 pub trait HashToCurve<T: AffineCurve>: Sized {
     /// Create a new hash to curve instance, with a given domain.
-    fn new(domain: &[u8]) -> Result<Self, HashToCurveError>;
+    fn new() -> Result<Self, HashToCurveError>;
 
     /// Produce a hash of the message, which also depends on the domain.
     /// The output of the hash is a curve point in the prime order subgroup

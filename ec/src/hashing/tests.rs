@@ -183,7 +183,8 @@ fn hash_arbitary_string_to_curve_swu() {
         GroupAffine<TestSWUMapToCurveParams>,
         DefaultFieldHasher<VarBlake2b>,
         SWUMap<TestSWUMapToCurveParams>,
-    >::new(&[1])
+        { &[1] },
+    >::new()
     .unwrap();
 
     let hash_result = test_swu_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");
@@ -406,7 +407,8 @@ fn hash_arbitary_string_to_curve_wb() {
         GroupAffine<TestWBF127MapToCurveParams>,
         DefaultFieldHasher<VarBlake2b>,
         WBMap<TestWBF127MapToCurveParams>,
-    >::new(&[1])
+        { &[1] },
+    >::new()
     .unwrap();
 
     let hash_result = test_wb_to_curve_hasher.hash(b"if you stick a Babel fish in your ear you can instantly understand anything said to you in any form of language.").expect("fail to hash the string to curve");

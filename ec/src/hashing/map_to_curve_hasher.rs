@@ -13,14 +13,16 @@ pub trait MapToCurve<T: AffineCurve> {
 }
 
 /// Trait for hashing messages to field elements.
-pub trait HashToField<F: Field>: Sized {
+pub trait HashToField<F: Field, const DOMAIN: &'static [u8]>: Sized {
     /// Initialises a new hash-to-field helper struct.
     ///
     /// # Arguments
     ///
-    /// * `domain` - bytes that get concatenated with the `msg` during hashing, in order to separate potentially interfering instantiations of the hasher.
+    /// * `domain` - bytes that get concatenated with the `msg` during hashing,
+    ///   in order to separate potentially interfering instantiations of the
+    ///   hasher.
     /// * `count` - number of elements in field `F` to output.
-    fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError>;
+    fn new_hash_to_field(count: usize) -> Result<Self, HashToCurveError>;
 
     /// Hash an arbitrary `msg` to #`count` elements from field `F`.
     fn hash_to_field(&self, msg: &[u8]) -> Result<Vec<F>, HashToCurveError>;
@@ -29,10 +31,10 @@ pub trait HashToField<F: Field>: Sized {
 /// Helper struct that can be used to construct elements on the elliptic curve
 /// from arbitrary messages, by first hashing the message onto a field element
 /// and then mapping it to the elliptic curve defined over that field.
-pub struct MapToCurveBasedHasher<T, H2F, M2C>
+pub struct MapToCurveBasedHasher<T, H2F, M2C, const DOMAIN: &'static [u8]>
 where
     T: AffineCurve,
-    H2F: HashToField<T::BaseField>,
+    H2F: HashToField<T::BaseField, DOMAIN>,
     M2C: MapToCurve<T>,
 {
     field_hasher: H2F,
@@ -40,14 +42,15 @@ where
     _params_t: PhantomData<T>,
 }
 
-impl<T, H2F, M2C> HashToCurve<T> for MapToCurveBasedHasher<T, H2F, M2C>
+impl<T, H2F, M2C, const DOMAIN: &'static [u8]> HashToCurve<T>
+    for MapToCurveBasedHasher<T, H2F, M2C, DOMAIN>
 where
     T: AffineCurve,
-    H2F: HashToField<T::BaseField>,
+    H2F: HashToField<T::BaseField, DOMAIN>,
     M2C: MapToCurve<T>,
 {
-    fn new(domain: &[u8]) -> Result<Self, HashToCurveError> {
-        let field_hasher = H2F::new_hash_to_field(domain, 2)?;
+    fn new() -> Result<Self, HashToCurveError> {
+        let field_hasher = H2F::new_hash_to_field(2)?;
         let curve_mapper = M2C::new_map_to_curve()?;
         let _params_t = PhantomData;
         Ok(MapToCurveBasedHasher {

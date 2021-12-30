@@ -44,10 +44,10 @@ pub struct DefaultFieldHasher<H: VariableOutput + Update + Sized + Clone> {
 }
 
 // Implement HashToField from F and a variable output hash
-impl<F: Field, H: VariableOutput + Update + Sized + Clone> HashToField<F>
-    for DefaultFieldHasher<H>
+impl<F: Field, H: VariableOutput + Update + Sized + Clone, const DOMAIN: &'static [u8]>
+    HashToField<F, DOMAIN> for DefaultFieldHasher<H>
 {
-    fn new_hash_to_field(domain: &[u8], count: usize) -> Result<Self, HashToCurveError> {
+    fn new_hash_to_field(count: usize) -> Result<Self, HashToCurveError> {
         // Hardcode security parameter
         let bytes_per_base_field_elem = hash_len_in_bytes::<F, 128>(count);
         // Create hasher and map the error type
@@ -69,7 +69,7 @@ impl<F: Field, H: VariableOutput + Update + Sized + Clone> HashToField<F>
             Err(err) => return Err(HashToCurveError::DomainError(err.to_string())),
         };
 
-        domain_hasher.update(domain);
+        domain_hasher.update(DOMAIN);
         domain_hasher.finalize_variable(|res| hashed_domain.copy_from_slice(res));
 
         // Prefix the 32 byte hashed domain to our hasher

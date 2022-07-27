@@ -1,7 +1,7 @@
 #![allow(unused)]
 #![allow(clippy::eq_op)]
 use ark_ff::{
-    fields::{FftField, Field, LegendreSymbol, PrimeField, SquareRootField},
+    fields::{FftField, Field, LegendreSymbol, PrimeField},
     Fp, MontBackend, MontConfig,
 };
 use ark_serialize::{buffer_bit_byte_size, Flags, SWFlags};
@@ -190,7 +190,7 @@ fn random_field_tests<F: Field>() {
     }
 }
 
-fn random_sqrt_tests<F: SquareRootField>() {
+fn random_sqrt_tests<F: Field>() {
     let mut rng = ark_std::test_rng();
 
     for _ in 0..ITERATIONS {
@@ -372,7 +372,7 @@ pub fn montgomery_primefield_test<T: MontConfig<N>, const N: usize>() {
     );
 
     let mut two_adicity = 0;
-    let mut trace = modulus_minus_one.clone();
+    let mut trace = modulus_minus_one;
     while trace.is_even() {
         trace /= 2u8;
         two_adicity += 1;
@@ -390,7 +390,7 @@ pub fn montgomery_primefield_test<T: MontConfig<N>, const N: usize>() {
     assert_eq!(two_adic_root_of_unity, generator.modpow(&trace, &modulus));
     match (T::SMALL_SUBGROUP_BASE, T::SMALL_SUBGROUP_BASE_ADICITY) {
         (Some(base), Some(adicity)) => {
-            let mut e = generator.clone();
+            let mut e = generator;
             for _i in 0..adicity {
                 e = e.modpow(&base.into(), &modulus)
             }
@@ -402,7 +402,7 @@ pub fn montgomery_primefield_test<T: MontConfig<N>, const N: usize>() {
     }
 }
 
-pub fn sqrt_field_test<F: SquareRootField>(elem: F) {
+pub fn sqrt_field_test<F: Field>(elem: F) {
     let square = elem.square();
     let sqrt = square.sqrt().unwrap();
     assert!(sqrt == elem || sqrt == -elem);

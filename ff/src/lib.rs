@@ -19,10 +19,6 @@ extern crate ark_std;
 #[macro_use]
 extern crate derivative;
 
-#[cfg_attr(test, macro_use)]
-pub mod bytes;
-pub use self::bytes::*;
-
 #[macro_use]
 pub mod biginteger;
 pub use self::biginteger::*;
@@ -46,13 +42,9 @@ pub use ark_std::vec;
 pub mod prelude {
     pub use crate::biginteger::BigInteger;
 
-    pub use crate::fields::{Field, PrimeField, SquareRootField};
+    pub use crate::fields::{Field, PrimeField};
 
     pub use ark_std::UniformRand;
 
     pub use num_traits::{One, Zero};
-}
-
-fn error(msg: &'static str) -> ark_std::io::Error {
-    ark_std::io::Error::new(ark_std::io::ErrorKind::Other, msg)
 }

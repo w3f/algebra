@@ -1,11 +1,11 @@
 use crate::{
-    models::{ModelParameters, SWModelParameters},
+    models::{short_weierstrass::SWCurveConfig, CurveConfig},
     PairingEngine,
 };
 use ark_ff::{
     fp3::{Fp3, Fp3Config},
     fp6_2over3::{Fp6, Fp6Config},
-    BitIteratorBE, Field, PrimeField, SquareRootField,
+    BitIteratorBE, Field, PrimeField,
 };
 use num_traits::{One, Zero};
 
@@ -30,14 +30,14 @@ pub trait MNT6Parameters: 'static {
     const FINAL_EXPONENT_LAST_CHUNK_1: <Self::Fp as PrimeField>::BigInt;
     const FINAL_EXPONENT_LAST_CHUNK_W0_IS_NEG: bool;
     const FINAL_EXPONENT_LAST_CHUNK_ABS_OF_W0: <Self::Fp as PrimeField>::BigInt;
-    type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
-    type Fr: PrimeField + SquareRootField + Into<<Self::Fr as PrimeField>::BigInt>;
+    type Fp: PrimeField + Into<<Self::Fp as PrimeField>::BigInt>;
+    type Fr: PrimeField + Into<<Self::Fr as PrimeField>::BigInt>;
     type Fp3Config: Fp3Config<Fp = Self::Fp>;
     type Fp6Config: Fp6Config<Fp3Config = Self::Fp3Config>;
-    type G1Parameters: SWModelParameters<BaseField = Self::Fp, ScalarField = Self::Fr>;
-    type G2Parameters: SWModelParameters<
+    type G1Parameters: SWCurveConfig<BaseField = Self::Fp, ScalarField = Self::Fr>;
+    type G2Parameters: SWCurveConfig<
         BaseField = Fp3<Self::Fp3Config>,
-        ScalarField = <Self::G1Parameters as ModelParameters>::ScalarField,
+        ScalarField = <Self::G1Parameters as CurveConfig>::ScalarField,
     >;
 }
 
@@ -195,7 +195,7 @@ impl<P: MNT6Parameters> MNT6<P> {
 }
 
 impl<P: MNT6Parameters> PairingEngine for MNT6<P> {
-    type Fr = <P::G1Parameters as ModelParameters>::ScalarField;
+    type Fr = <P::G1Parameters as CurveConfig>::ScalarField;
     type G1Projective = G1Projective<P>;
     type G1Affine = G1Affine<P>;
     type G1Prepared = G1Prepared<P>;

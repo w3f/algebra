@@ -1,12 +1,12 @@
 use crate::{
-    models::{ModelParameters, SWModelParameters},
+    models::{short_weierstrass::SWCurveConfig, CurveConfig},
     PairingEngine,
 };
 use ark_ff::fields::{
     fp12_2over3over2::{Fp12, Fp12Config},
     fp2::Fp2Config,
     fp6_3over2::Fp6Config,
-    Field, Fp2, PrimeField, SquareRootField,
+    Field, Fp2, PrimeField,
 };
 use num_traits::One;
 
@@ -31,14 +31,14 @@ pub trait BnParameters: 'static {
     const TWIST_TYPE: TwistType;
     const TWIST_MUL_BY_Q_X: Fp2<Self::Fp2Config>;
     const TWIST_MUL_BY_Q_Y: Fp2<Self::Fp2Config>;
-    type Fp: PrimeField + SquareRootField + Into<<Self::Fp as PrimeField>::BigInt>;
+    type Fp: PrimeField + Into<<Self::Fp as PrimeField>::BigInt>;
     type Fp2Config: Fp2Config<Fp = Self::Fp>;
     type Fp6Config: Fp6Config<Fp2Config = Self::Fp2Config>;
     type Fp12Config: Fp12Config<Fp6Config = Self::Fp6Config>;
-    type G1Parameters: SWModelParameters<BaseField = Self::Fp>;
-    type G2Parameters: SWModelParameters<
+    type G1Parameters: SWCurveConfig<BaseField = Self::Fp>;
+    type G2Parameters: SWCurveConfig<
         BaseField = Fp2<Self::Fp2Config>,
-        ScalarField = <Self::G1Parameters as ModelParameters>::ScalarField,
+        ScalarField = <Self::G1Parameters as CurveConfig>::ScalarField,
     >;
 }
 
@@ -85,7 +85,7 @@ impl<P: BnParameters> Bn<P> {
 }
 
 impl<P: BnParameters> PairingEngine for Bn<P> {
-    type Fr = <P::G1Parameters as ModelParameters>::ScalarField;
+    type Fr = <P::G1Parameters as CurveConfig>::ScalarField;
     type G1Projective = G1Projective<P>;
     type G1Affine = G1Affine<P>;
     type G1Prepared = G1Prepared<P>;

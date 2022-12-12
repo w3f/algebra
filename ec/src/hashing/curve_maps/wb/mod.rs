@@ -11,7 +11,7 @@ use crate::{
 };
 
 use super::swu::{SWUMap, SWUParams};
-type BaseField<MP> = <MP as CurveConfig>::BaseField;
+pub type BaseField<MP> = <MP as CurveConfig>::BaseField;
 
 /// [`IsogenyMap`] defines an isogeny between curves of
 /// form `Phi(x, y) := (a(x), b(x)*y).

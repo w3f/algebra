@@ -1,4 +1,4 @@
-use core::{default, marker::PhantomData};
+use core::{marker::PhantomData};
 
 use crate::{models::short_weierstrass::SWCurveConfig, CurveConfig};
 use ark_ff::batch_inversion;

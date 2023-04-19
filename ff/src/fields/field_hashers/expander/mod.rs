@@ -3,14 +3,10 @@
 
 use ark_std::vec::Vec;
 
-use digest::{FixedOutputReset, ExtendableOutput, XofReader, Update, core_api::BlockSizeUser};
+use digest::{FixedOutputReset, ExtendableOutput, XofReader, Update};
 use arrayvec::ArrayVec;
 
 
-pub trait Expander {
-    type R: XofReader;
-    fn expand(&self, msg: &[u8], length: usize) -> Self::R;
-}
 const MAX_DST_LENGTH: usize = 255;
 
 const LONG_DST_PREFIX: &[u8; 17] = b"H2C-OVERSIZE-DST-";
@@ -74,45 +70,45 @@ impl DST {
     }
 }
 
+pub trait Expander {
+    type R: XofReader;
+    fn expand(self, dst: &DST, length: usize) -> Self::R;
+}
+
+impl<H: ExtendableOutput> Expander for H {
+    type R = <H as ExtendableOutput>::Reader;
+    fn expand(mut self, dst: &DST, n: usize) -> Self::R
+    {
+        assert!(n < (1 << 16), "Length should be smaller than 2^16");
+        // I2OSP(len,2) https://www.rfc-editor.org/rfc/rfc8017.txt
+        self.update(& (n as u16).to_be_bytes());
+    
+        dst.update(&mut self);
+        self.finalize_xof()
+    }
+}
+
 static Z_PAD: [u8; 256] = [0u8; 256];
 
-pub struct IrtfH2F<H: Update+Default>(H);
+pub struct Zpad<H: FixedOutputReset+Default>(pub H);
 
-impl<H: Update+Default> Update for IrtfH2F<H> {
+impl<H: FixedOutputReset+Default> Update for Zpad<H> {
     fn update(&mut self, data: &[u8]) {
         self.0.update(data);
     }
 }
 
-impl<H: Update+Default> IrtfH2F<H> {
-    pub fn new_xof() -> IrtfH2F<H>
-    where H: ExtendableOutput
-    {
-        IrtfH2F(H::default())
-    }
-
-    pub fn expand_xof(mut self, dst: &DST, n: usize) -> impl XofReader
-    where H: ExtendableOutput
-    {
-        assert!(n < (1 << 16), "Length should be smaller than 2^16");
-        // I2OSP(len,2) https://www.rfc-editor.org/rfc/rfc8017.txt
-        self.0.update(& (n as u16).to_be_bytes());
-
-        // DST::new_xof::<H>(self.dst.as_ref(), self.k)
-        dst.update(&mut self.0);
-        self.0.finalize_xof()
-    }
-
-    pub fn new_xmd() -> IrtfH2F<H>
-    where H: FixedOutputReset+BlockSizeUser
-    {
+impl<H: FixedOutputReset+Default> Zpad<H> {
+    pub fn new(block_size: usize) -> Zpad<H> {
         let mut hasher = H::default();
-        hasher.update(&Z_PAD[0 .. H::block_size()]);
-        IrtfH2F(hasher)
+        hasher.update(&Z_PAD[0..block_size]);
+        Zpad(hasher)
     }
+}
 
-    pub fn expand_xmd(self, dst: &DST, n: usize) -> impl XofReader
-    where H: FixedOutputReset
+impl<H: FixedOutputReset+Default> Expander for Zpad<H> {
+    type R = XofVec;
+    fn expand(self, dst: &DST, n: usize) -> XofVec
     {
         use digest::typenum::Unsigned;
         // output size of the hash function, e.g. 32 bytes = 256 bits for sha2::Sha256
@@ -123,7 +119,7 @@ impl<H: Update+Default> IrtfH2F<H> {
             "The ratio of desired output to the output size of hash function is too large!"
         );
 
-        let IrtfH2F(mut hasher) = self;
+        let Zpad(mut hasher) = self;
         assert!(n < (1 << 16), "Length should be smaller than 2^16");
         // I2OSP(len,2) https://www.rfc-editor.org/rfc/rfc8017.txt
         hasher.update(& (n as u16).to_be_bytes());

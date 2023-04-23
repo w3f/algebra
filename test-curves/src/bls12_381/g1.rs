@@ -1,6 +1,6 @@
 use crate::bls12_381::*;
 use ark_ec::{
-    hashing::curve_maps::wb::{IsogenyMap, WBConfig},
+    hashing::wb::{IsogenyMap, WBConfig},
     models::CurveConfig,
     short_weierstrass::{self, *},
 };
